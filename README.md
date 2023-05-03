@@ -75,7 +75,7 @@ Note however that all other options, such as `--external-id` or `--tag` will be 
 
 Assuming a role and creating clients
 ```python
-from aws_assumptions import Identity
+from aws_assumptions.identity import Identity
 
 session = Identity(
   RoleArn="arn:aws:iam::123456789876:role/my-role",
@@ -90,7 +90,7 @@ session_that_made_current_rule = session.whomademe()
 Chaining roles
 
 ```python
-from aws_assumptions import Identity
+from aws_assumptions.identity import Identity
 
 session = Identity(
   RoleArn=[
