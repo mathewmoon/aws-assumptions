@@ -22,7 +22,7 @@ def main():
         epilog=dedent(
             """
       Assume a role or a chain of roles with optional attributes, outputting the newly acquired credentials.
-      Maintains parity with boto3's sts.assume_role except for MFA"
+      Maintains parity with boto3's sts.assume_role except for MFA
     """
         ),
     )
@@ -87,6 +87,9 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.command is None:
+        parser.print_help()
+        exit()
 
     return cmd_funcs[args.command](args)
 
