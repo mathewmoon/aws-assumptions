@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "aws-assumptions"
+version = "0.1.0"
+description = "Easily export env vars for assuming AWS roles using STS Assume Role"
+authors = ["Mathew Moon <me@mathewmoon.net>"]
+packages = [
+    { include = "aws_assumptions"}
+]
+homepage = "https://github.com/mathewmoon/aws-assumptions"
+documentation = "https://github.com/mathewmoon/aws-assumptions"
+readme = "README.md"
+[tool.poetry.dependencies]
+python = "^3.9"
+boto3    = ">=1.26"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+assumptions = "aws_assumptions.scripts:main"
