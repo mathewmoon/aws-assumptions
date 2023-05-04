@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace, REMAINDER
 from json import dumps
+from os import environ
+from subprocess import run
 from textwrap import dedent
+
+from dotenv import dotenv_values
+
 from .identity import Identity, PolicyArn, Tag, DEFAULT_CLIENT
 
 
-def main():
-    cmd_funcs = {"whoami": whoami, "assume": assume_role}
+def main(help=False):
+    cmd_funcs = {"whoami": whoami, "assume": assume_role, "exec": executor}
 
     parser = ArgumentParser(
         epilog="Switch roles, or through a chain or roles, or print identity information from AWS STS"
     )
+
     subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser(
@@ -79,6 +85,37 @@ def main():
         type=int,
         default=3600,
     )
+
+    # The order this comes in is imperative. It MUST come after all args in the parent
+    # that we want but BEFORE those that we don't
+    exec = subparsers.add_parser(
+        "exec",
+        epilog="Execute a command in a shell with newly created credentials.",
+        parents=[assume],
+        add_help=False
+    )
+
+    exec.add_argument(
+       "-N",
+       "--no-inherit-env",
+       action="store_true",
+       help="Don't allow the executed command to inherit the parent's env."
+    )
+
+    exec.add_argument(
+       "-e",
+       "--env-var",
+       action="append",
+       type=str,
+       help="Env var in the format `MYVAR=foo` to pass to the executed command's environment. Can be declared multiple times."
+    )
+
+    exec.add_argument(
+      "--env-file",
+      type=str,
+      help="Load env vars from a .env file."
+    )
+
     assume.add_argument(
         "-e",
         "--env-vars",
@@ -86,7 +123,17 @@ def main():
         action="store_true",
     )
 
+    exec.add_argument(
+        "exec_command",
+        nargs=REMAINDER
+    )
+
+    if help:
+      parser.print_help()
+      return
+
     args = parser.parse_args()
+
     if args.command is None:
         parser.print_help()
         exit()
@@ -94,7 +141,7 @@ def main():
     return cmd_funcs[args.command](args)
 
 
-def assume_role(args):
+def assume_role(args: Namespace, print_vars: bool = True):
     opts = dict(
         RoleArn=args.role_arn,
         RoleSessionName=args.role_session_name,
@@ -108,14 +155,53 @@ def assume_role(args):
 
     role = Identity(**opts)
 
-    if args.env_vars:
-        print(role.credentials.env_vars)
-    else:
-        res = dumps(role.credentials, indent=2)
-        print(res)
+    if print_vars:
+      if args.env_vars:
+          print(role.credentials.env_vars)
+      else:
+          res = dumps(role.credentials, indent=2)
+          print(res)
+
+    return role
 
 
-def whoami(_):
+def whoami(_: Namespace):
     res = DEFAULT_CLIENT.get_caller_identity()
     del res["ResponseMetadata"]
     print(dumps(res, indent=2))
+
+
+def executor(args: Namespace):
+  if not args.exec_command:
+    print("Must supply a command to run.")
+    main(help=True)
+    exit()
+
+  role = assume_role(args, print_vars=False)
+
+  creds = {
+    "AWS_ACCESS_KEY_ID": role.credentials.AccessKeyId,
+    "AWS_SECRET_ACCESS_KEY": role.credentials.SecretAccessKey,
+    "AWS_SESSION_TOKEN": role.credentials.SessionToken
+  }
+
+  env = {
+    pair[0]: pair[1] for pair in [ env_var.split("=") for env_var in args.env_var]
+  } if args.env_var else {}
+
+
+  if not args.no_inherit_env:
+    env.update(environ)
+
+  if args.env_file:
+    env.update(dotenv_values(args.env_file))
+
+  run(
+    " ".join(args.exec_command),
+    env=env,
+    shell=False
+  )
+
+
+if __name__ == "__main__":
+  main()

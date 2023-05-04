@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "aws-assumptions"
-version = "0.1.0"
-description = "Easily export env vars for assuming AWS roles using STS Assume Role"
+version = "0.2.0"
+description = "Assume role(s) from a terminal and easily manage boto3 clients for multiple identities at once."
 authors = ["Mathew Moon <me@mathewmoon.net>"]
 packages = [
     { include = "aws_assumptions"}
@@ -10,8 +10,9 @@ homepage = "https://github.com/mathewmoon/aws-assumptions"
 documentation = "https://github.com/mathewmoon/aws-assumptions"
 readme = "README.md"
 [tool.poetry.dependencies]
-python = "^3.9"
+python   = "^3.9"
 boto3    = ">=1.26"
+dotenv   = "^0.20.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

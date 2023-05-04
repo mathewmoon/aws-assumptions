@@ -1,7 +1,10 @@
 # aws-assumptions
 
-Easily switch between roles, or a chain of roles and create boto3 clients and resources off of those assumed identities.
-Along with being able to use this package as an import a cli script is included.
+* Easily switch between roles, or a chain of roles and create boto3 clients and resources off of those assumed identities.
+* Can be used as a library to assume roles. The created object also provides a factory for creating boto3 clients/resources off of the object
+* CLI script that allows printing credentials to stdout as either the standard response from boto3.sts.assume_role or formatted to use as env vars in a *nix terminal.
+* CLI provides `exec` command to execute terminal commands in a subshell with the newly minted credentials injected into the environment
+.
 
 ## CLI Usage
 
@@ -11,7 +14,7 @@ Available commands
 usage: assumptions [-h] {whoami,assume} ...
 
 positional arguments:
-  {whoami,assume}
+  {whoami,assume,exec}
 
 optional arguments:
   -h, --help       show this help message and exit
@@ -66,6 +69,10 @@ or
 ```
 $(assumptions assume -r "arn:aws:iam::123456789876:role/my-role" -n bob@nowhere.com)
 ```
+
+Using `exec`
+
+
 
 ## Switching through multiple roles
 If you need to chain roles (EG: Assume a role that assumes a role that assumes a role) you can pass the `-r` flag multiple times.
