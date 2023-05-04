@@ -179,25 +179,24 @@ def executor(args: Namespace):
 
   role = assume_role(args, print_vars=False)
 
-  creds = {
+  env = environ if not args.no_inherit_env else {}
+
+  if args.env_var:
+    env.update({
+      pair[0]: pair[1] for pair in [ env_var.split("=") for env_var in args.env_var]
+    })
+
+  env.update({
     "AWS_ACCESS_KEY_ID": role.credentials.AccessKeyId,
     "AWS_SECRET_ACCESS_KEY": role.credentials.SecretAccessKey,
     "AWS_SESSION_TOKEN": role.credentials.SessionToken
-  }
-
-  env = {
-    pair[0]: pair[1] for pair in [ env_var.split("=") for env_var in args.env_var]
-  } if args.env_var else {}
-
-
-  if not args.no_inherit_env:
-    env.update(environ)
+  })
 
   if args.env_file:
     env.update(dotenv_values(args.env_file))
 
   run(
-    " ".join(args.exec_command),
+    args.exec_command,
     env=env,
     shell=False
   )
