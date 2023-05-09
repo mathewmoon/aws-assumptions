@@ -43,6 +43,13 @@ class AWSCredentials(dict):
         "Expiration",
     ]
 
+    def __init__(self, **kwargs):
+        args = {
+            k: str(v) for k, v in kwargs.items()
+        }
+        super().__init__(**args)
+
+
     def __getattribute__(self, __name: str) -> Any:
         # So I like dots..... Get over it.....
         if __name in super().__getattribute__("__slots__"):
