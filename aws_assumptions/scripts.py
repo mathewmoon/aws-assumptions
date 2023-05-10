@@ -3,6 +3,7 @@ from argparse import ArgumentParser, Namespace, REMAINDER
 from json import dumps
 from os import environ
 from subprocess import run
+from sys import exit
 from textwrap import dedent
 
 from dotenv import dotenv_values
@@ -130,15 +131,15 @@ def main(help=False):
 
     if help:
       parser.print_help()
-      return
+      exit()
 
     args = parser.parse_args()
 
-    if args.command is None:
+    if help or args.command is None:
         parser.print_help()
         exit()
 
-    return cmd_funcs[args.command](args)
+    cmd_funcs[args.command](args)
 
 
 def assume_role(args: Namespace, print_vars: bool = True):
@@ -161,8 +162,6 @@ def assume_role(args: Namespace, print_vars: bool = True):
       else:
           res = dumps(role.credentials, indent=2)
           print(res)
-
-    return role
 
 
 def whoami(_: Namespace):
@@ -200,7 +199,3 @@ def executor(args: Namespace):
     env=env,
     shell=False
   )
-
-
-if __name__ == "__main__":
-  main()
