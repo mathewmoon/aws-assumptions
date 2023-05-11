@@ -43,11 +43,8 @@ class AWSCredentials(dict):
     ]
 
     def __init__(self, **kwargs):
-        args = {
-            k: str(v) for k, v in kwargs.items()
-        }
+        args = {k: str(v) for k, v in kwargs.items()}
         super().__init__(**args)
-
 
     def __getattribute__(self, __name: str) -> Any:
         # So I like dots..... Get over it.....
@@ -57,7 +54,7 @@ class AWSCredentials(dict):
             return super().__getattribute__(__name)
 
     @property
-    def session_args(self):
+    def session_args(self) -> dict:
         # Formatting matches that of boto3.session.Session, boto3.client, and boto3.resource
         # signatures. So helpful for creating new clients or sessions from creds off your object
         return {
@@ -67,15 +64,15 @@ class AWSCredentials(dict):
         }
 
     @property
-    def env_vars(self):
+    def env_vars(self) -> str:
         # Useful when running from cli. eg: $(assume-role -r arn:iam::123456577:role/foo)
         # will get you using your new role from a terminal
         return dedent(
             f"""
-      AWS_ACCESS_KEY_ID={self.AccessKeyId}
-      AWS_SECRET_ACCESS_KEY={self.SecretAccessKey}
-      AWS_SESSION_TOKEN={self.SessionToken}
-    """
+            AWS_ACCESS_KEY_ID={self.AccessKeyId}
+            AWS_SECRET_ACCESS_KEY={self.SecretAccessKey}
+            AWS_SESSION_TOKEN={self.SessionToken}
+        """
         )
 
 
@@ -107,7 +104,7 @@ class Identity:
         RoleSessionName: str = "aws-assumptions-session",
         TransitiveTagKeys: List[str] = [],
         Tags: List[Tag] = [],
-        sts_client: object = None,
+        sts_client: object = None,  # Create an `Identity` object and pass `myidentity.client("sts")` to assume a new role from the previous
     ):
         opts = dict(
             RoleArn=RoleArn,
@@ -151,17 +148,17 @@ class Identity:
             self.__load_credentials()
 
     @property
-    def credentials(self):
+    def credentials(self) -> AWSCredentials:
         if self.__credentials is None:
             self.__load_credentials()
         return self.__credentials
 
-    def __load_credentials(self):
+    def __load_credentials(self) -> None:
         client = self.__sts_client or self.boto_session.client("sts")
         res = client.assume_role(**self.__opts)
         self.__credentials = AWSCredentials(**res["Credentials"])
 
-    def client(self, service: str, **kwargs: Dict[str, Any]):
+    def client(self, service: str, **kwargs: Dict[str, Any]) -> object:
         # A little factory for making boto3.client(s)
         opts = {**kwargs, **self.credentials.session_args}
 
@@ -178,7 +175,7 @@ class Identity:
         # Return client from cache
         return self.__client_cache["client"][service]["client_obj"]
 
-    def resource(self, service: str, **kwargs: Dict[str, Any]):
+    def resource(self, service: str, **kwargs: Dict[str, Any]) -> object:
         # A little factory for making boto3.resource(s)
         opts = {**kwargs, **self.credentials.session_args}
 
@@ -192,15 +189,15 @@ class Identity:
                 "client_obj": self.boto_session.resource(service, **opts),
             }
 
-        # Return client from cache
+        # Return resource from cache
         return self.__client_cache["resource"][service]["client_obj"]
 
-    def whoami(self):
+    def whoami(self) -> dict:
         res = self.client("sts").get_caller_identity()
         del res["ResponseMetadata"]
         return res
 
-    def whomademe(self):
+    def whomademe(self) -> dict:
         res = self.__sts_client.get_caller_identity()
         del res["ResponseMetadata"]
         return res

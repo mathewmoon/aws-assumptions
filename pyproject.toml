@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aws-assumptions"
-version = "0.2.2"
+version = "0.2.3"
 description = "Assume role(s) from a terminal and easily manage boto3 clients for multiple identities at once."
 authors = ["Mathew Moon <me@mathewmoon.net>"]
 packages = [
