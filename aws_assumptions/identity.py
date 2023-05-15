@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 from copy import deepcopy
 from textwrap import dedent
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, TYPE_CHECKING, Union
 
+
+from botocore.client import BaseClient
 from boto3.session import Session
+from boto3.resources.factory import ServiceResource
 
+if TYPE_CHECKING:
+    from mypy_boto3_sts import STSClient
+else:
+    STSCLient = object
 
-SESSION = Session()
-DEFAULT_CLIENT = Session().client("sts")
+SESSION: Session = Session()
+DEFAULT_CLIENT: STSClient = SESSION.client("sts")
 
 
 """
@@ -99,12 +106,12 @@ class Identity:
         *,
         RoleArn: Union[List[str], str],
         DurationSeconds: int = 3600,
-        ExternalId: str = None,
+        ExternalId: str = "",
         PolicyArns: List[PolicyArn] = [],
         RoleSessionName: str = "aws-assumptions-session",
         TransitiveTagKeys: List[str] = [],
         Tags: List[Tag] = [],
-        sts_client: object = None,  # Create an `Identity` object and pass `myidentity.client("sts")` to assume a new role from the previous
+        sts_client: STSClient = DEFAULT_CLIENT,  # Create an `Identity` object and pass `myidentity.client("sts")` to assume a new role from the previous
     ):
         opts = dict(
             RoleArn=RoleArn,
@@ -116,9 +123,9 @@ class Identity:
             DurationSeconds=DurationSeconds,
         )
 
-        self.boto_session = SESSION
-        self.__sts_client = sts_client or self.boto_session.client("sts")
-        self.__credentials = None
+        self.boto_session: Session = SESSION
+        self.__sts_client: STSClient = sts_client
+        self.__credentials: AWSCredentials
         self.__client_cache = {"resource": {}, "client": {}}
 
         # Get rid of Nones and empties
@@ -154,11 +161,11 @@ class Identity:
         return self.__credentials
 
     def __load_credentials(self) -> None:
-        client = self.__sts_client or self.boto_session.client("sts")
+        client: BaseClient = self.__sts_client or self.boto_session.client("sts")
         res = client.assume_role(**self.__opts)
         self.__credentials = AWSCredentials(**res["Credentials"])
 
-    def client(self, service: str, **kwargs: Dict[str, Any]) -> object:
+    def client(self, service: str, **kwargs: Dict[str, Any]) -> BaseClient:
         # A little factory for making boto3.client(s)
         opts = {**kwargs, **self.credentials.session_args}
 
@@ -175,7 +182,7 @@ class Identity:
         # Return client from cache
         return self.__client_cache["client"][service]["client_obj"]
 
-    def resource(self, service: str, **kwargs: Dict[str, Any]) -> object:
+    def resource(self, service: str, **kwargs: Dict[str, Any]) -> ServiceResource:
         # A little factory for making boto3.resource(s)
         opts = {**kwargs, **self.credentials.session_args}
 
@@ -194,10 +201,12 @@ class Identity:
 
     def whoami(self) -> dict:
         res = self.client("sts").get_caller_identity()
-        del res["ResponseMetadata"]
+        if res and res.get("ResponseMetadata"):
+            del res["ResponseMetadata"]
         return res
 
     def whomademe(self) -> dict:
         res = self.__sts_client.get_caller_identity()
-        del res["ResponseMetadata"]
+        if res and res.get("ResponseMetadata"):
+            del res["ResponseMetadata"]
         return res
